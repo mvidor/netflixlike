@@ -27,3 +27,14 @@ Base de données
     Comptes utilisateurs
     Contenus (films, séries, catégories)
     Historique, préférences, données enregistrées
+
+
+
+Page d'acceuil : 
+
+-Une barre de recherche au milieur haut 
+-Un onglet haut gauche mon compte 
+-Plusieurs film qui apparaissent 
+-Premiere ligne "reprendre la lecture "
+-Deuxieme ligne "ma liste"
+-Onglet ma liste
