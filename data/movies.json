@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "title": "Inception",
+    "description": "Un voleur qui s'infiltre dans les reves des gens pour voler leurs secrets doit accomplir l'inverse : implanter une idee.",
+    "poster": "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSE-qAvQNLV5Uge.jpg",
+    "backdrop": "https://image.tmdb.org/t/p/original/s3TBrRGB1iav7gFOCNx3H31MoES.jpg",
+    "genre": "Science-Fiction",
+    "year": 2010,
+    "duration": 148,
+    "price": 3.99,
+    "rating": 8.8
+  },
+  {
+    "id": 2,
+    "title": "The Dark Knight",
+    "description": "Batman affronte le Joker, un criminel anarchiste qui veut plonger Gotham dans le chaos.",
+    "poster": "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
+    "backdrop": "https://image.tmdb.org/t/p/original/hkBaD-kMWbLaf8B1lsWsKX7Ew3Xq.jpg",
+    "genre": "Action",
+    "year": 2008,
+    "duration": 152,
+    "price": 3.99,
+    "rating": 9.0
+  },
+  {
+    "id": 3,
+    "title": "Interstellar",
+    "description": "Une equipe d'explorateurs voyage a travers un trou de ver dans l'espace pour assurer la survie de l'humanite.",
+    "poster": "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6Mx1N-BvixJk.jpg",
+    "backdrop": "https://image.tmdb.org/t/p/original/xu9zaAevzQ5nnrsXN6JcahLnG4i.jpg",
+    "genre": "Science-Fiction",
+    "year": 2014,
+    "duration": 169,
+    "price": 4.99,
+    "rating": 8.6
+  },
+  {
+    "id": 4,
+    "title": "Pulp Fiction",
+    "description": "Les histoires entrelacees de criminels, d'un boxeur et d'un couple de braqueurs dans le Los Angeles criminel.",
+    "poster": "https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBp8JPIbfXD.jpg",
+    "backdrop": "https://image.tmdb.org/t/p/original/suaEOtkN1sgg2MTM7oZd2cfVp3.jpg",
+    "genre": "Thriller",
+    "year": 1994,
+    "duration": 154,
+    "price": 3.99,
+    "rating": 8.9
+  },
+  {
+    "id": 5,
+    "title": "Forrest Gump",
+    "description": "L'histoire de Forrest Gump, un homme simple d'esprit qui traverse plusieurs decennies de l'histoire americaine.",
+    "poster": "https://image.tmdb.org/t/p/w500/arw2vcB-veVOZr6pxd9XTd1TdQa.jpg",
+    "backdrop": "https://image.tmdb.org/t/p/original/7c9UVPPiT-PItouxRVl6N9uYzpx.jpg",
+    "genre": "Drame",
+    "year": 1994,
+    "duration": 142,
+    "price": 3.99,
+    "rating": 8.8
+  }
+]

@@ -1,0 +1,41 @@
+# ======================
+# Node / npm (tous les sous-projets)
+# ======================
+**/node_modules/
+**/npm-debug.log*
+**/yarn-debug.log*
+**/pnpm-debug.log*
+
+# ======================
+# Build / Vite
+# ======================
+**/dist/
+**/.vite/
+
+# ======================
+# Env
+# ======================
+**/.env
+**/.env.local
+**/.env.*.local
+
+# ======================
+# Logs
+# ======================
+**/*.log
+logs/
+
+# ======================
+# OS
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# IDE
+# ======================
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+.idea/
