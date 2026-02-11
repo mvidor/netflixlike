@@ -9,7 +9,7 @@ const genreColors = {
   Thriller: 'bg-gray-500'
 }
 
-function MovieCard({ movie }) {
+function MovieCard({ movie, onRent }) {
   return (
     <div className="group relative cursor-pointer overflow-hidden rounded-lg transition-transform duration-300 hover:scale-105">
       <div className="relative aspect-[2/3]">
@@ -40,7 +40,16 @@ function MovieCard({ movie }) {
         <p className="mb-4 line-clamp-2 text-sm text-gray-300">{movie.description}</p>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button size="sm" className="flex-1">
+          <Button
+            size="sm"
+            className="flex-1"
+            onClick={(event) => {
+              event.stopPropagation()
+              if (onRent) {
+                onRent(movie)
+              }
+            }}
+          >
             {'>'} Louer {movie.price}EUR
           </Button>
           <Button variant="outline" size="sm" className="flex-1">

@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import Header from '../components/layout/Header'
 import Footer from '../components/layout/Footer'
 import MovieHero from '../components/movies/MovieHero'
 import MovieCarousel from '../components/movies/MovieCarousel'
+import MovieList from '../components/movies/MovieList'
+import MovieFilter from '../components/movies/MovieFilter'
 
 const allMovies = [
   {
@@ -20,7 +23,7 @@ const allMovies = [
   {
     id: 2,
     title: 'Interstellar',
-    poster: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIxJk.jpg',
+    poster: 'https://upload.wikimedia.org/wikipedia/en/b/bc/Interstellar_film_poster.jpg',
     backdrop: 'https://image.tmdb.org/t/p/original/xu9zaAevzQ5nnrsXN6JcahLnG4i.jpg',
     rating: 8.6,
     year: 2014,
@@ -56,7 +59,7 @@ const allMovies = [
   {
     id: 5,
     title: 'John Wick',
-    poster: 'https://picsum.photos/seed/johnwick/400/600',
+    poster: 'https://upload.wikimedia.org/wikipedia/en/9/98/John_Wick_TeaserPoster.jpg',
     backdrop: 'https://picsum.photos/seed/johnwickb/1400/800',
     rating: 7.4,
     year: 2014,
@@ -68,7 +71,7 @@ const allMovies = [
   {
     id: 6,
     title: 'Mad Max Fury Road',
-    poster: 'https://picsum.photos/seed/madmax/400/600',
+    poster: 'https://upload.wikimedia.org/wikipedia/en/6/6e/Mad_Max_Fury_Road.jpg',
     backdrop: 'https://picsum.photos/seed/madmaxb/1400/800',
     rating: 8.1,
     year: 2015,
@@ -80,7 +83,7 @@ const allMovies = [
   {
     id: 7,
     title: 'Top Gun Maverick',
-    poster: 'https://picsum.photos/seed/topgun/400/600',
+    poster: 'https://upload.wikimedia.org/wikipedia/en/1/13/Top_Gun_Maverick_Poster.jpg',
     backdrop: 'https://picsum.photos/seed/topgunb/1400/800',
     rating: 8.2,
     year: 2022,
@@ -92,7 +95,7 @@ const allMovies = [
   {
     id: 8,
     title: 'Mission Impossible Fallout',
-    poster: 'https://picsum.photos/seed/fallout/400/600',
+    poster: 'https://upload.wikimedia.org/wikipedia/en/f/ff/MI_%E2%80%93_Fallout.jpg',
     backdrop: 'https://picsum.photos/seed/falloutb/1400/800',
     rating: 7.7,
     year: 2018,
@@ -104,7 +107,7 @@ const allMovies = [
   {
     id: 9,
     title: 'The Batman',
-    poster: 'https://picsum.photos/seed/thebatman/400/600',
+    poster: 'https://upload.wikimedia.org/wikipedia/en/f/ff/The_Batman_%28film%29_poster.jpg',
     backdrop: 'https://picsum.photos/seed/thebatmanb/1400/800',
     rating: 7.8,
     year: 2022,
@@ -116,7 +119,7 @@ const allMovies = [
   {
     id: 10,
     title: 'Dune',
-    poster: 'https://picsum.photos/seed/dune/400/600',
+    poster: 'https://upload.wikimedia.org/wikipedia/en/8/8e/Dune_%282021_film%29.jpg',
     backdrop: 'https://picsum.photos/seed/duneb/1400/800',
     rating: 8.0,
     year: 2021,
@@ -132,16 +135,44 @@ function pickRandomMovies(items, count) {
 }
 
 function Home() {
+  const [allMoviesState] = useState(allMovies)
+  const [filteredMovies, setFilteredMovies] = useState(allMovies)
+  const [cartItems, setCartItems] = useState([])
+
   const featuredMovie = allMovies[0]
   const popularMovies = pickRandomMovies(allMovies, 5)
   const actionMovies = allMovies.filter((movie) => movie.genre === 'Action').slice(0, 5)
   const recentMovies = allMovies.filter((movie) => movie.year > 2010).slice(0, 5)
 
+  const handleSearch = (movie) => {
+    console.log('Film selectionne:', movie)
+  }
+
+  const handleAddToCart = (movie) => {
+    setCartItems((current) => {
+      if (current.some((item) => item.id === movie.id)) {
+        return current
+      }
+      return [...current, movie]
+    })
+  }
+
+  const handleRemoveFromCart = (movieId) => {
+    setCartItems((current) => current.filter((item) => item.id !== movieId))
+  }
+
   return (
     <div className="min-h-screen bg-netflix-black text-white">
-      <Header />
+      <Header
+        movies={allMoviesState}
+        onSearch={handleSearch}
+        cartItems={cartItems}
+        onRemoveFromCart={handleRemoveFromCart}
+      />
       <main className="pb-8 pt-16">
         <MovieHero movie={featuredMovie} />
+        <MovieFilter movies={allMoviesState} onFilter={setFilteredMovies} />
+        <MovieList title="Films disponibles" movies={filteredMovies} onRent={handleAddToCart} />
         <MovieCarousel title="Films populaires" movies={popularMovies} />
         <MovieCarousel title="Selection Action" movies={actionMovies} />
         <MovieCarousel title="Films recents" movies={recentMovies} />

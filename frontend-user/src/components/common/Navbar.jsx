@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import SearchBar from './SearchBar'
+import CartButton from './CartButton'
+import SearchBar from '../movies/SearchBar'
 
-function Navbar() {
+function Navbar({ movies, onSearch, cartItems, onRemoveFromCart }) {
   const [isScrolled] = useState(false)
 
   return (
@@ -35,7 +36,8 @@ function Navbar() {
           </div>
 
           <div className="flex items-center space-x-4">
-            <SearchBar />
+            <SearchBar movies={movies} onSearch={onSearch} />
+            <CartButton items={cartItems} onRemove={onRemoveFromCart} />
             <div className="bg-primary hover:bg-primary-dark flex h-8 w-8 cursor-pointer items-center justify-center rounded transition-colors">
               <span className="text-sm font-bold">U</span>
             </div>
