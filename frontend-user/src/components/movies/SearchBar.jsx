@@ -1,29 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 function SearchBar({ movies, onSearch }) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [suggestions, setSuggestions] = useState([])
   const [isOpen, setIsOpen] = useState(false)
 
-  useEffect(() => {
+  const suggestions = useMemo(() => {
     const term = searchTerm.trim().toLowerCase()
-
-    if (term.length >= 2) {
-      const filtered = movies
-        .filter((movie) => {
-          const title = movie.title.toLowerCase()
-          const description = movie.description.toLowerCase()
-          return title.includes(term) || description.includes(term)
-        })
-        .slice(0, 5)
-
-      setSuggestions(filtered)
-      setIsOpen(true)
-      return
+    if (term.length < 2) {
+      return []
     }
 
-    setSuggestions([])
-    setIsOpen(false)
+    return movies
+      .filter((movie) => {
+        const title = movie.title.toLowerCase()
+        const description = movie.description.toLowerCase()
+        return title.includes(term) || description.includes(term)
+      })
+      .slice(0, 5)
   }, [searchTerm, movies])
 
   const handleSelect = (movie) => {
@@ -40,7 +33,10 @@ function SearchBar({ movies, onSearch }) {
         <input
           type="text"
           value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
+          onChange={(event) => {
+            setSearchTerm(event.target.value)
+            setIsOpen(true)
+          }}
           onFocus={() => {
             if (searchTerm.trim().length >= 2 && suggestions.length > 0) {
               setIsOpen(true)

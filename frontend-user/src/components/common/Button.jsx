@@ -4,7 +4,8 @@ function Button({
   size = 'md',
   onClick,
   className = '',
-  type = 'button'
+  type = 'button',
+  disabled = false
 }) {
   const baseClasses =
     'font-semibold rounded transition-all duration-300 inline-flex items-center justify-center'
@@ -25,7 +26,10 @@ function Button({
     <button
       type={type}
       onClick={onClick}
-      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
+      disabled={disabled}
+      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${
+        disabled ? 'cursor-not-allowed opacity-70' : ''
+      } ${className}`}
     >
       {children}
     </button>

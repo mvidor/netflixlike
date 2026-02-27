@@ -1,4 +1,5 @@
 import Button from '../common/Button'
+import { useNavigate } from 'react-router-dom'
 
 const genreColors = {
   Action: 'bg-red-500',
@@ -10,8 +11,13 @@ const genreColors = {
 }
 
 function MovieCard({ movie, onRent }) {
+  const navigate = useNavigate()
+
   return (
-    <div className="group relative cursor-pointer overflow-hidden rounded-lg transition-transform duration-300 hover:scale-105">
+    <div
+      className="group relative cursor-pointer overflow-hidden rounded-lg transition-transform duration-300 hover:scale-105"
+      onClick={() => navigate(`/movie/${movie.id}`)}
+    >
       <div className="relative aspect-[2/3]">
         <img src={movie.poster} alt={movie.title} className="h-full w-full object-cover" />
 
@@ -44,6 +50,7 @@ function MovieCard({ movie, onRent }) {
             size="sm"
             className="flex-1"
             onClick={(event) => {
+              event.preventDefault()
               event.stopPropagation()
               if (onRent) {
                 onRent(movie)
@@ -52,7 +59,16 @@ function MovieCard({ movie, onRent }) {
           >
             {'>'} Louer {movie.price}EUR
           </Button>
-          <Button variant="outline" size="sm" className="flex-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              navigate(`/movie/${movie.id}`)
+            }}
+          >
             + Info
           </Button>
         </div>

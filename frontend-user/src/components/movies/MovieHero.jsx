@@ -1,6 +1,6 @@
 import Button from '../common/Button'
 
-function MovieHero({ movie }) {
+function MovieHero({ movie, onMoreInfo }) {
   return (
     <div className="relative h-[80vh] w-full">
       <div className="absolute inset-0">
@@ -28,7 +28,7 @@ function MovieHero({ movie }) {
             <Button size="lg" className="shadow-2xl">
               Louer pour {movie.price}EUR
             </Button>
-            <Button variant="secondary" size="lg">
+            <Button variant="secondary" size="lg" onClick={onMoreInfo}>
               Plus d'infos
             </Button>
           </div>

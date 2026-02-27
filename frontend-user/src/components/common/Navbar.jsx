@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link, NavLink } from 'react-router-dom'
 import CartButton from './CartButton'
 import SearchBar from '../movies/SearchBar'
 
@@ -14,23 +15,30 @@ function Navbar({ movies, onSearch, cartItems, onRemoveFromCart }) {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
-            <h1 className="text-primary text-3xl font-bold tracking-tight">NETFLIX</h1>
+            <Link to="/" className="text-primary text-3xl font-bold tracking-tight">
+              NETFLIX
+            </Link>
 
             <ul className="hidden space-x-6 md:flex">
               <li>
-                <a href="#" className="transition-colors hover:text-gray-300">
+                <NavLink
+                  to="/"
+                  className={({ isActive }) =>
+                    isActive ? 'text-primary font-bold' : 'transition-colors hover:text-gray-300'
+                  }
+                >
                   Accueil
-                </a>
+                </NavLink>
               </li>
               <li>
-                <a href="#" className="transition-colors hover:text-gray-300">
-                  Films
-                </a>
-              </li>
-              <li>
-                <a href="#" className="transition-colors hover:text-gray-300">
+                <NavLink
+                  to="/my-rentals"
+                  className={({ isActive }) =>
+                    isActive ? 'text-primary font-bold' : 'transition-colors hover:text-gray-300'
+                  }
+                >
                   Mes locations
-                </a>
+                </NavLink>
               </li>
             </ul>
           </div>
@@ -38,9 +46,12 @@ function Navbar({ movies, onSearch, cartItems, onRemoveFromCart }) {
           <div className="flex items-center space-x-4">
             <SearchBar movies={movies} onSearch={onSearch} />
             <CartButton items={cartItems} onRemove={onRemoveFromCart} />
-            <div className="bg-primary hover:bg-primary-dark flex h-8 w-8 cursor-pointer items-center justify-center rounded transition-colors">
-              <span className="text-sm font-bold">U</span>
-            </div>
+            <Link
+              to="/login"
+              className="bg-primary hover:bg-primary-dark rounded px-3 py-1 text-sm font-semibold transition-colors"
+            >
+              Connexion
+            </Link>
           </div>
         </div>
       </div>

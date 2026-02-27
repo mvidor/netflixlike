@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Input from '../components/common/Input'
 import Button from '../components/common/Button'
 
@@ -14,15 +14,15 @@ const readUsers = () => {
   }
 }
 
-const Login = () => {
+const Register = () => {
   const navigate = useNavigate()
-  const location = useLocation()
-  const redirectTo = location.state?.from?.pathname || '/'
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   })
 
   const handleChange = (event) => {
@@ -33,6 +33,10 @@ const Login = () => {
   const validateForm = () => {
     const nextErrors = {}
 
+    if (!formData.name) {
+      nextErrors.name = 'Nom requis'
+    }
+
     if (!formData.email) {
       nextErrors.email = 'Email requis'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -41,16 +45,22 @@ const Login = () => {
 
     if (!formData.password) {
       nextErrors.password = 'Mot de passe requis'
+    } else if (formData.password.length < 6) {
+      nextErrors.password = 'Au moins 6 caracteres'
     }
 
-    if (!nextErrors.email && !nextErrors.password) {
-      const users = readUsers()
-      const matchedUser = users.find(
-        (user) => user.email.toLowerCase() === formData.email.toLowerCase()
-      )
-      if (!matchedUser || matchedUser.password !== formData.password) {
-        nextErrors.auth = 'Email ou mot de passe incorrect'
-      }
+    if (!formData.confirmPassword) {
+      nextErrors.confirmPassword = 'Confirmation requise'
+    } else if (formData.password !== formData.confirmPassword) {
+      nextErrors.confirmPassword = 'Les mots de passe ne correspondent pas'
+    }
+
+    const existingUsers = readUsers()
+    const alreadyExists = existingUsers.some(
+      (user) => user.email.toLowerCase() === formData.email.toLowerCase()
+    )
+    if (alreadyExists) {
+      nextErrors.email = 'Cet email existe deja'
     }
 
     return nextErrors
@@ -69,20 +79,26 @@ const Login = () => {
     setIsLoading(true)
 
     setTimeout(() => {
-      const users = readUsers()
-      const matchedUser = users.find(
-        (user) => user.email.toLowerCase() === formData.email.toLowerCase()
-      )
+      const existingUsers = readUsers()
+      const nextUsers = [
+        ...existingUsers,
+        {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        }
+      ]
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(nextUsers))
 
       localStorage.setItem(
         'user',
         JSON.stringify({
           email: formData.email,
-          name: matchedUser?.name || formData.email.split('@')[0]
+          name: formData.name
         })
       )
       setIsLoading(false)
-      navigate(redirectTo, { replace: true })
+      navigate('/', { replace: true })
     }, 1000)
   }
 
@@ -92,8 +108,19 @@ const Login = () => {
         className="w-full max-w-md space-y-4 rounded-lg border border-netflix-gray bg-black/60 p-6"
         onSubmit={handleSubmit}
       >
-        <h1 className="text-primary text-center text-4xl font-bold tracking-tight">NETZLIX</h1>
-        <h2 className="pt-2 text-2xl font-bold">Se connecter</h2>
+        <h1 className="text-primary text-center text-4xl font-bold tracking-tight">NetZlix</h1>
+        <h2 className="pt-2 text-3xl font-bold">S'inscrire</h2>
+        <Input
+          id="name"
+          name="name"
+          type="text"
+          label="Nom"
+          placeholder="Votre nom"
+          value={formData.name}
+          onChange={handleChange}
+          error={errors.name}
+          autoComplete="name"
+        />
         <Input
           id="email"
           name="email"
@@ -114,16 +141,26 @@ const Login = () => {
           value={formData.password}
           onChange={handleChange}
           error={errors.password}
-          autoComplete="current-password"
+          autoComplete="new-password"
         />
-        {errors.auth ? <p className="text-sm text-primary">{errors.auth}</p> : null}
+        <Input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          label="Confirmez le mot de passe"
+          placeholder="********"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+          error={errors.confirmPassword}
+          autoComplete="new-password"
+        />
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Connexion...' : 'Se connecter'}
+          {isLoading ? 'Inscription...' : "S'inscrire"}
         </Button>
         <p className="text-center text-sm text-gray-400">
-          Pas encore de compte ?{' '}
-          <Link to="/register" className="text-primary hover:underline">
-            S'inscrire
+          Deja un compte ?{' '}
+          <Link to="/login" className="text-primary hover:underline">
+            Se connecter
           </Link>
         </p>
       </form>
@@ -131,4 +168,4 @@ const Login = () => {
   )
 }
 
-export default Login
+export default Register
