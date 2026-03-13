@@ -2,82 +2,74 @@ import mongoose from 'mongoose';
 import Movie from '../models/movie.js';
 import Rental from '../models/rental.js';
 
-const parsePositiveInt = (value, fallback) => {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isNaN(parsed) || parsed <= 0 ? fallback : parsed;
+const objectIdError = (message) => Object.assign(new Error(message), { statusCode: 400 });
+
+const ensureObjectId = (id, message) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) throw objectIdError(message);
 };
 
-const buildSortOption = (sortBy = 'createdAt', order = 'desc') => {
-  const allowedSortFields = ['createdAt', 'title', 'year', 'price', 'rating', 'rentalCount'];
-  const field = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
-  return { [field]: order === 'asc' ? 1 : -1 };
+const getMovieOr404 = async (id) => {
+  ensureObjectId(id, 'ID invalide');
+  const movie = await Movie.findById(id);
+  if (!movie) throw Object.assign(new Error('Film introuvable'), { statusCode: 404 });
+  return movie;
 };
+
+const getPagination = ({ page = '1', limit = '10' }) => {
+  const currentPage = Math.max(Number.parseInt(page, 10) || 1, 1);
+  const pageSize = Math.max(Number.parseInt(limit, 10) || 10, 1);
+  return { currentPage, pageSize, skip: (currentPage - 1) * pageSize };
+};
+
+const buildMovieQuery = ({ genre, search, isAvailable, minYear, maxYear }) => {
+  const query = {};
+
+  if (genre) query.genre = genre;
+  if (search) {
+    query.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } },
+    ];
+  }
+  if (typeof isAvailable !== 'undefined') query.isAvailable = isAvailable === 'true';
+  if (minYear || maxYear) {
+    query.year = {};
+    if (minYear) query.year.$gte = Number(minYear);
+    if (maxYear) query.year.$lte = Number(maxYear);
+  }
+
+  return query;
+};
+
+const getSortOption = ({ sortBy = 'createdAt', order = 'desc' }) => {
+  const allowed = ['createdAt', 'title', 'year', 'price', 'rating', 'rentalCount'];
+  return { [allowed.includes(sortBy) ? sortBy : 'createdAt']: order === 'asc' ? 1 : -1 };
+};
+
+const sendPaginated = (res, { items, total, currentPage, pageSize }) =>
+  res.status(200).json({
+    success: true,
+    count: items.length,
+    total,
+    totalPages: Math.ceil(total / pageSize),
+    currentPage,
+    data: items,
+  });
 
 // @desc    Obtenir tous les films
 // @route   GET /api/movies
 // @access  Public
 export const getAllMovies = async (req, res, next) => {
   try {
-    const {
-      page = '1',
-      limit = '10',
-      sortBy = 'createdAt',
-      order = 'desc',
-      genre,
-      search,
-      isAvailable,
-      minYear,
-      maxYear,
-    } = req.query;
+    const query = buildMovieQuery(req.query);
+    const sort = getSortOption(req.query);
+    const { currentPage, pageSize, skip } = getPagination(req.query);
+    const [movies, total] = await Promise.all([
+      Movie.find(query).sort(sort).skip(skip).limit(pageSize),
+      Movie.countDocuments(query),
+    ]);
 
-    const currentPage = parsePositiveInt(page, 1);
-    const pageSize = parsePositiveInt(limit, 10);
-    const skip = (currentPage - 1) * pageSize;
-
-    const query = {};
-
-    if (genre) {
-      query.genre = genre;
-    }
-
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    if (typeof isAvailable !== 'undefined') {
-      query.isAvailable = isAvailable === 'true';
-    }
-
-    if (minYear || maxYear) {
-      query.year = {};
-      if (minYear) {
-        query.year.$gte = Number(minYear);
-      }
-      if (maxYear) {
-        query.year.$lte = Number(maxYear);
-      }
-    }
-
-    const sortOption = buildSortOption(sortBy, order);
-
-    const movies = await Movie.find(query)
-      .sort(sortOption)
-      .skip(skip)
-      .limit(pageSize);
-
-    const total = await Movie.countDocuments(query);
-
-    res.status(200).json({
-      success: true,
-      count: movies.length,
-      total,
-      totalPages: Math.ceil(total / pageSize),
-      currentPage,
-      data: movies,
-    });
+    sendPaginated(res, { items: movies, total, currentPage, pageSize });
   } catch (error) {
     next(error);
   }
@@ -88,28 +80,7 @@ export const getAllMovies = async (req, res, next) => {
 // @access  Public
 export const getMovieById = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID invalide',
-      });
-    }
-
-    const movie = await Movie.findById(id);
-
-    if (!movie) {
-      return res.status(404).json({
-        success: false,
-        message: 'Film introuvable',
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: movie,
-    });
+    res.status(200).json({ success: true, data: await getMovieOr404(req.params.id) });
   } catch (error) {
     next(error);
   }
@@ -144,11 +115,7 @@ export const createMovie = async (req, res, next) => {
       rating,
     });
 
-    return res.status(201).json({
-      success: true,
-      message: 'Film cree avec succes',
-      data: movie,
-    });
+    res.status(201).json({ success: true, message: 'Film cree avec succes', data: movie });
   } catch (error) {
     next(error);
   }
@@ -159,32 +126,15 @@ export const createMovie = async (req, res, next) => {
 // @access  Private/Admin
 export const updateMovie = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID invalide',
-      });
-    }
-
-    const updatedMovie = await Movie.findByIdAndUpdate(id, req.body, {
+    ensureObjectId(req.params.id, 'ID invalide');
+    const movie = await Movie.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
     });
 
-    if (!updatedMovie) {
-      return res.status(404).json({
-        success: false,
-        message: 'Film introuvable',
-      });
-    }
+    if (!movie) return res.status(404).json({ success: false, message: 'Film introuvable' });
 
-    return res.status(200).json({
-      success: true,
-      message: 'Film mis a jour avec succes',
-      data: updatedMovie,
-    });
+    res.status(200).json({ success: true, message: 'Film mis a jour avec succes', data: movie });
   } catch (error) {
     next(error);
   }
@@ -195,25 +145,8 @@ export const updateMovie = async (req, res, next) => {
 // @access  Private/Admin
 export const deleteMovie = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID invalide',
-      });
-    }
-
-    const movie = await Movie.findById(id);
-
-    if (!movie) {
-      return res.status(404).json({
-        success: false,
-        message: 'Film introuvable',
-      });
-    }
-
-    const rentalCount = await Rental.countDocuments({ movie: id });
+    const movie = await getMovieOr404(req.params.id);
+    const rentalCount = await Rental.countDocuments({ movie: req.params.id });
 
     if (rentalCount > 0) {
       return res.status(400).json({
@@ -223,11 +156,7 @@ export const deleteMovie = async (req, res, next) => {
     }
 
     await movie.deleteOne();
-
-    return res.status(200).json({
-      success: true,
-      message: 'Film supprime avec succes',
-    });
+    res.status(200).json({ success: true, message: 'Film supprime avec succes' });
   } catch (error) {
     next(error);
   }
@@ -238,36 +167,29 @@ export const deleteMovie = async (req, res, next) => {
 // @access  Private/Admin
 export const getMovieStats = async (req, res, next) => {
   try {
-    const totalRevenue = await Movie.aggregate([
-      {
-        $group: {
-          _id: null,
-          total: { $sum: { $multiply: ['$price', '$rentalCount'] } },
+    const [revenue, byGenre, totalMovies] = await Promise.all([
+      Movie.aggregate([
+        { $group: { _id: null, total: { $sum: { $multiply: ['$price', '$rentalCount'] } } } },
+      ]),
+      Movie.aggregate([
+        { $unwind: '$genre' },
+        {
+          $group: {
+            _id: '$genre',
+            count: { $sum: 1 },
+            avgPrice: { $avg: '$price' },
+            avgRating: { $avg: '$rating' },
+            totalRentals: { $sum: '$rentalCount' },
+          },
         },
-      },
+        { $sort: { count: -1 } },
+      ]),
+      Movie.countDocuments(),
     ]);
 
-    const byGenre = await Movie.aggregate([
-      { $unwind: '$genre' },
-      {
-        $group: {
-          _id: '$genre',
-          count: { $sum: 1 },
-          avgPrice: { $avg: '$price' },
-          avgRating: { $avg: '$rating' },
-          totalRentals: { $sum: '$rentalCount' },
-        },
-      },
-      { $sort: { count: -1 } },
-    ]);
-
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      data: {
-        totalMovies: await Movie.countDocuments(),
-        totalRevenue: totalRevenue[0]?.total || 0,
-        byGenre,
-      },
+      data: { totalMovies, totalRevenue: revenue[0]?.total || 0, byGenre },
     });
   } catch (error) {
     next(error);
@@ -279,24 +201,7 @@ export const getMovieStats = async (req, res, next) => {
 // @access  Public
 export const getSimilarMovies = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID invalide',
-      });
-    }
-
-    const movie = await Movie.findById(id);
-
-    if (!movie) {
-      return res.status(404).json({
-        success: false,
-        message: 'Film introuvable',
-      });
-    }
-
+    const movie = await getMovieOr404(req.params.id);
     const similarMovies = await Movie.find({
       genre: { $in: movie.genre },
       _id: { $ne: movie._id },
@@ -305,11 +210,7 @@ export const getSimilarMovies = async (req, res, next) => {
       .sort({ rating: -1 })
       .limit(6);
 
-    return res.status(200).json({
-      success: true,
-      count: similarMovies.length,
-      data: similarMovies,
-    });
+    res.status(200).json({ success: true, count: similarMovies.length, data: similarMovies });
   } catch (error) {
     next(error);
   }
