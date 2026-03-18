@@ -1,10 +1,20 @@
 import { useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import CartButton from './CartButton'
 import SearchBar from '../movies/SearchBar'
+import { useAuth } from '../../context/AuthProvider'
 
-function Navbar({ movies, onSearch, cartItems, onRemoveFromCart }) {
+function Navbar({ movies, onSearch }) {
   const [isScrolled] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const navigate = useNavigate()
+  const { user, logout, isAuthenticated } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+    setShowUserMenu(false)
+    navigate('/login')
+  }
 
   return (
     <nav
@@ -45,13 +55,52 @@ function Navbar({ movies, onSearch, cartItems, onRemoveFromCart }) {
 
           <div className="flex items-center space-x-4">
             <SearchBar movies={movies} onSearch={onSearch} />
-            <CartButton items={cartItems} onRemove={onRemoveFromCart} />
-            <Link
-              to="/login"
-              className="bg-primary hover:bg-primary-dark rounded px-3 py-1 text-sm font-semibold transition-colors"
-            >
-              Connexion
-            </Link>
+            <CartButton />
+            {isAuthenticated() ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu((current) => !current)}
+                  className="flex items-center space-x-2"
+                  type="button"
+                >
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="h-8 w-8 rounded-full object-cover ring-2 ring-primary transition"
+                  />
+                  <span className="hidden text-sm md:block">{user.name}</span>
+                </button>
+
+                {showUserMenu ? (
+                  <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-800 bg-black/95 py-2 shadow-xl backdrop-blur-lg">
+                    <div className="border-b border-gray-800 px-4 py-2 text-sm text-gray-300">
+                      {user.email}
+                    </div>
+                    <NavLink
+                      to="/my-rentals"
+                      className="block px-4 py-2 transition hover:bg-gray-800"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      Mes locations
+                    </NavLink>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2 text-left text-red-400 transition hover:bg-gray-800"
+                      type="button"
+                    >
+                      Deconnexion
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="bg-primary hover:bg-primary-dark rounded px-3 py-1 text-sm font-semibold transition-colors"
+              >
+                Connexion
+              </Link>
+            )}
           </div>
         </div>
       </div>

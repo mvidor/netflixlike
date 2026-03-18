@@ -2,20 +2,13 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Input from '../components/common/Input'
 import Button from '../components/common/Button'
-
-const USERS_STORAGE_KEY = 'users'
-
-const readUsers = () => {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '[]')
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
+import { useAuth } from '../context/AuthProvider'
+import { useNotification } from '../context/NotificationContext'
 
 const Register = () => {
   const navigate = useNavigate()
+  const { register } = useAuth()
+  const { success, error } = useNotification()
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [formData, setFormData] = useState({
@@ -55,18 +48,10 @@ const Register = () => {
       nextErrors.confirmPassword = 'Les mots de passe ne correspondent pas'
     }
 
-    const existingUsers = readUsers()
-    const alreadyExists = existingUsers.some(
-      (user) => user.email.toLowerCase() === formData.email.toLowerCase()
-    )
-    if (alreadyExists) {
-      nextErrors.email = 'Cet email existe deja'
-    }
-
     return nextErrors
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
 
     const newErrors = validateForm()
@@ -78,28 +63,17 @@ const Register = () => {
     setErrors({})
     setIsLoading(true)
 
-    setTimeout(() => {
-      const existingUsers = readUsers()
-      const nextUsers = [
-        ...existingUsers,
-        {
-          name: formData.name,
-          email: formData.email,
-          password: formData.password
-        }
-      ]
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(nextUsers))
-
-      localStorage.setItem(
-        'user',
-        JSON.stringify({
-          email: formData.email,
-          name: formData.name
-        })
-      )
+    const result = await register(formData.name, formData.email, formData.password)
+    if (result.success) {
       setIsLoading(false)
+      success('Compte cree avec succes.')
       navigate('/', { replace: true })
-    }, 1000)
+      return
+    }
+
+    error(result.error || "Erreur lors de l'inscription")
+    setErrors({ email: result.error || "Erreur lors de l'inscription" })
+    setIsLoading(false)
   }
 
   return (

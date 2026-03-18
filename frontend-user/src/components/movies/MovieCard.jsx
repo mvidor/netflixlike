@@ -1,5 +1,6 @@
 import Button from '../common/Button'
 import { useNavigate } from 'react-router-dom'
+import { useCart } from '../../context/CartContext'
 
 const genreColors = {
   Action: 'bg-red-500',
@@ -10,8 +11,11 @@ const genreColors = {
   Thriller: 'bg-gray-500'
 }
 
-function MovieCard({ movie, onRent }) {
+function MovieCard({ movie, onRent, onAddToCart }) {
   const navigate = useNavigate()
+  const { isRented, isInCart } = useCart()
+  const rented = isRented(movie.id)
+  const inCart = isInCart(movie.id)
 
   return (
     <div
@@ -49,27 +53,33 @@ function MovieCard({ movie, onRent }) {
           <Button
             size="sm"
             className="flex-1"
+            disabled={rented}
             onClick={(event) => {
               event.preventDefault()
               event.stopPropagation()
-              if (onRent) {
+              if (onRent && !rented) {
                 onRent(movie)
               }
             }}
           >
-            {'>'} Louer {movie.price}EUR
+            {rented ? 'Deja loue' : `Louer ${movie.price} EUR`}
           </Button>
           <Button
             variant="outline"
             size="sm"
             className="flex-1"
+            disabled={rented || inCart}
             onClick={(event) => {
               event.preventDefault()
               event.stopPropagation()
+              if (onAddToCart && !rented && !inCart) {
+                onAddToCart(movie)
+                return
+              }
               navigate(`/movie/${movie.id}`)
             }}
           >
-            + Info
+            {rented ? 'Loue' : inCart ? 'Dans le panier' : '+ Panier'}
           </Button>
         </div>
       </div>

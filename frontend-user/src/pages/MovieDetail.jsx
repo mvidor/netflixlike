@@ -1,55 +1,58 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import Footer from '../components/layout/Footer'
 import Button from '../components/common/Button'
 import Breadcrumb from '../components/common/Breadcrumb'
 import { allMovies } from '../data/movies'
-import { getRentalsForCurrentUser, saveRentalsForCurrentUser } from '../utils/rentalsStorage'
+import { useAuth } from '../context/AuthProvider'
+import { useCart } from '../context/CartContext'
+import { useNotification } from '../context/NotificationContext'
 
 const MovieDetail = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { id } = useParams()
-  const [notification, setNotification] = useState(null)
+  const { isAuthenticated } = useAuth()
+  const { addToCart, rentMovie, isRented, isInCart, getRentalByMovieId } = useCart()
+  const { success, error, info } = useNotification()
 
   const movie = useMemo(() => allMovies.find((item) => item.id === Number(id)), [id])
 
   const handleRent = () => {
-    const user = localStorage.getItem('user')
-    if (!user) {
+    if (!isAuthenticated()) {
+      info('Connectez-vous pour louer ce film.')
       navigate('/login', { state: { from: location } })
       return
     }
 
-    const rental = {
-      id: movie.id,
-      movieId: movie.id,
-      title: movie.title,
-      poster: movie.poster,
-      price: movie.price,
-      rentalDate: new Date().toISOString(),
-      expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-    }
-
-    const currentRentals = getRentalsForCurrentUser()
-
-    const alreadyRented = currentRentals.some(
-      (item) => item.movieId === movie.id || item.id === movie.id
-    )
-
-    if (alreadyRented) {
-      setNotification({ type: 'error', message: 'Vous avez deja loue ce film.' })
+    const result = rentMovie(movie)
+    if (!result.success) {
+      error(result.error || 'Location impossible.')
       return
     }
 
-    const nextRentals = [...currentRentals, rental]
-    saveRentalsForCurrentUser(nextRentals)
-    setNotification({ type: 'success', message: 'Film loue avec succes.' })
+    success('Film loue avec succes.')
 
     setTimeout(() => {
       navigate('/my-rentals')
     }, 2000)
+  }
+
+  const handleAddToCart = () => {
+    if (!isAuthenticated()) {
+      info('Connectez-vous pour utiliser le panier.')
+      navigate('/login', { state: { from: location } })
+      return
+    }
+
+    const added = addToCart(movie)
+    if (!added) {
+      error('Film deja present dans le panier ou deja loue.')
+      return
+    }
+
+    success('Film ajoute au panier.')
   }
 
   if (!movie) {
@@ -64,18 +67,13 @@ const MovieDetail = () => {
     )
   }
 
+  const rented = isRented(movie.id)
+  const inCart = isInCart(movie.id)
+  const rental = getRentalByMovieId(movie.id)
+
   return (
     <div className="min-h-screen bg-netflix-black text-white">
-      {notification ? (
-        <div
-          className={`fixed right-4 top-20 z-[70] rounded-lg px-6 py-3 shadow-xl ${
-            notification.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-          }`}
-        >
-          {notification.message}
-        </div>
-      ) : null}
-      <Header movies={allMovies} onSearch={() => {}} cartItems={[]} onRemoveFromCart={() => {}} />
+      <Header movies={allMovies} onSearch={() => {}} />
       <main className="pt-16">
         <section className="relative min-h-[65vh]">
           <img src={movie.backdrop} alt={movie.title} className="absolute inset-0 h-full w-full object-cover" />
@@ -107,9 +105,26 @@ const MovieDetail = () => {
           <div>
             <h2 className="text-2xl font-bold">Informations</h2>
             <p className="mt-3 text-gray-300">Prix de location: {movie.price} EUR</p>
-            <Button size="lg" className="mt-6" onClick={handleRent}>
-              Louer pour {movie.price} EUR
-            </Button>
+            {rented ? (
+              <div className="mt-6 inline-flex rounded bg-green-700 px-4 py-2 text-sm font-semibold text-white">
+                Film loue jusqu'au {new Date(rental?.expiryDate || '').toLocaleDateString('fr-FR')}
+              </div>
+            ) : (
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Button size="lg" className="sm:flex-1" onClick={handleRent}>
+                  Louer maintenant - {movie.price} EUR
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="sm:flex-1"
+                  disabled={inCart}
+                  onClick={handleAddToCart}
+                >
+                  {inCart ? 'Dans le panier' : '+ Ajouter au panier'}
+                </Button>
+              </div>
+            )}
           </div>
         </section>
       </main>

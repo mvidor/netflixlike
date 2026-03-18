@@ -2,22 +2,15 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Input from '../components/common/Input'
 import Button from '../components/common/Button'
-
-const USERS_STORAGE_KEY = 'users'
-
-const readUsers = () => {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '[]')
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
+import { useAuth } from '../context/AuthProvider'
+import { useNotification } from '../context/NotificationContext'
 
 const Login = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const redirectTo = location.state?.from?.pathname || '/'
+  const { login } = useAuth()
+  const { success, error } = useNotification()
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [formData, setFormData] = useState({
@@ -43,20 +36,10 @@ const Login = () => {
       nextErrors.password = 'Mot de passe requis'
     }
 
-    if (!nextErrors.email && !nextErrors.password) {
-      const users = readUsers()
-      const matchedUser = users.find(
-        (user) => user.email.toLowerCase() === formData.email.toLowerCase()
-      )
-      if (!matchedUser || matchedUser.password !== formData.password) {
-        nextErrors.auth = 'Email ou mot de passe incorrect'
-      }
-    }
-
     return nextErrors
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
 
     const newErrors = validateForm()
@@ -68,22 +51,17 @@ const Login = () => {
     setErrors({})
     setIsLoading(true)
 
-    setTimeout(() => {
-      const users = readUsers()
-      const matchedUser = users.find(
-        (user) => user.email.toLowerCase() === formData.email.toLowerCase()
-      )
-
-      localStorage.setItem(
-        'user',
-        JSON.stringify({
-          email: formData.email,
-          name: matchedUser?.name || formData.email.split('@')[0]
-        })
-      )
+    const result = await login(formData.email, formData.password)
+    if (result.success) {
       setIsLoading(false)
+      success('Connexion reussie.')
       navigate(redirectTo, { replace: true })
-    }, 1000)
+      return
+    }
+
+    error(result.error || 'Erreur de connexion')
+    setErrors({ auth: result.error || 'Erreur de connexion' })
+    setIsLoading(false)
   }
 
   return (

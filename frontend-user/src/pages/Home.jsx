@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import Footer from '../components/layout/Footer'
@@ -7,7 +7,8 @@ import MovieCarousel from '../components/movies/MovieCarousel'
 import MovieList from '../components/movies/MovieList'
 import MovieFilter from '../components/movies/MovieFilter'
 import { allMovies } from '../data/movies'
-import { getRentalsForCurrentUser, saveRentalsForCurrentUser } from '../utils/rentalsStorage'
+import { useCart } from '../context/CartContext'
+import { useAuth } from '../context/AuthProvider'
 
 function pickRandomMovies(items, count) {
   return [...items].sort(() => Math.random() - 0.5).slice(0, count)
@@ -15,9 +16,10 @@ function pickRandomMovies(items, count) {
 
 function Home() {
   const navigate = useNavigate()
+  const { addToCart, rentMovie } = useCart()
+  const { isAuthenticated } = useAuth()
   const [allMoviesState] = useState(allMovies)
   const [filteredMovies, setFilteredMovies] = useState(allMovies)
-  const [cartItems, setCartItems] = useState(() => getRentalsForCurrentUser())
 
   const featuredMovie = allMovies[0]
   const popularMovies = pickRandomMovies(allMovies, 5)
@@ -28,38 +30,43 @@ function Home() {
     navigate(`/movie/${movie.id}`, { state: { from: 'home-search' } })
   }
 
+  const redirectToLogin = (movieId) => {
+    navigate('/login', { state: { from: { pathname: `/movie/${movieId}` } } })
+  }
+
+  const handleRent = (movie) => {
+    if (!isAuthenticated()) {
+      redirectToLogin(movie.id)
+      return
+    }
+
+    rentMovie(movie)
+  }
+
   const handleAddToCart = (movie) => {
-    setCartItems((current) => {
-      if (current.some((item) => item.id === movie.id)) {
-        return current
-      }
-      return [...current, movie]
-    })
-  }
+    if (!isAuthenticated()) {
+      redirectToLogin(movie.id)
+      return
+    }
 
-  const handleRemoveFromCart = (movieId) => {
-    setCartItems((current) => current.filter((item) => item.id !== movieId))
+    addToCart(movie)
   }
-
-  useEffect(() => {
-    saveRentalsForCurrentUser(cartItems)
-  }, [cartItems])
 
   return (
     <div className="min-h-screen bg-netflix-black text-white">
-      <Header
-        movies={allMoviesState}
-        onSearch={handleSearch}
-        cartItems={cartItems}
-        onRemoveFromCart={handleRemoveFromCart}
-      />
+      <Header movies={allMoviesState} onSearch={handleSearch} />
       <main className="pb-8 pt-16">
         <MovieHero
           movie={featuredMovie}
           onMoreInfo={() => navigate(`/movie/${featuredMovie.id}`, { state: { from: 'home-hero' } })}
         />
         <MovieFilter movies={allMoviesState} onFilter={setFilteredMovies} />
-        <MovieList title="Films disponibles" movies={filteredMovies} onRent={handleAddToCart} />
+        <MovieList
+          title="Films disponibles"
+          movies={filteredMovies}
+          onRent={handleRent}
+          onAddToCart={handleAddToCart}
+        />
         <MovieCarousel title="Films populaires" movies={popularMovies} />
         <MovieCarousel title="Selection Action" movies={actionMovies} />
         <MovieCarousel title="Films recents" movies={recentMovies} />
