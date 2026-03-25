@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import CartButton from './CartButton'
 import SearchBar from '../movies/SearchBar'
-import { useAuth } from '../../context/AuthProvider'
+import { useAuth } from '../../context/useAuth'
 
 function Navbar({ movies, onSearch }) {
   const [isScrolled] = useState(false)
@@ -10,8 +10,8 @@ function Navbar({ movies, onSearch }) {
   const navigate = useNavigate()
   const { user, logout, isAuthenticated } = useAuth()
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     setShowUserMenu(false)
     navigate('/login')
   }
@@ -76,6 +76,13 @@ function Navbar({ movies, onSearch }) {
                     <div className="border-b border-gray-800 px-4 py-2 text-sm text-gray-300">
                       {user.email}
                     </div>
+                    <NavLink
+                      to="/profile"
+                      className="block px-4 py-2 transition hover:bg-gray-800"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      Mon profil
+                    </NavLink>
                     <NavLink
                       to="/my-rentals"
                       className="block px-4 py-2 transition hover:bg-gray-800"

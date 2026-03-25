@@ -1,8 +1,10 @@
 import Button from '../common/Button'
 
-function MovieHero({ movie, onMoreInfo }) {
+function MovieHero({ movie, onMoreInfo, onRent }) {
+  const genreLabel = Array.isArray(movie.genre) ? movie.genre[0] : movie.genre
+
   return (
-    <div className="relative h-[80vh] w-full">
+    <div className="relative w-full" style={{ height: '80vh' }}>
       <div className="absolute inset-0">
         <img src={movie.backdrop} alt={movie.title} className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
@@ -17,7 +19,7 @@ function MovieHero({ movie, onMoreInfo }) {
             <span className="rounded bg-primary px-3 py-1 text-sm font-bold">{movie.rating}/10</span>
             <span className="text-gray-300">{movie.year}</span>
             <span className="text-gray-300">{movie.duration} min</span>
-            <span className="rounded border border-gray-500 px-2 py-0.5 text-sm">{movie.genre}</span>
+            <span className="rounded border border-gray-500 px-2 py-0.5 text-sm">{genreLabel}</span>
           </div>
 
           <p className="mb-8 text-lg leading-relaxed text-gray-300 drop-shadow-lg md:text-xl">
@@ -25,7 +27,7 @@ function MovieHero({ movie, onMoreInfo }) {
           </p>
 
           <div className="flex flex-col gap-4 sm:flex-row">
-            <Button size="lg" className="shadow-2xl">
+            <Button size="lg" className="shadow-2xl" onClick={onRent}>
               Louer pour {movie.price}EUR
             </Button>
             <Button variant="secondary" size="lg" onClick={onMoreInfo}>

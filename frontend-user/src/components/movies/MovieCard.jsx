@@ -1,6 +1,6 @@
 import Button from '../common/Button'
 import { useNavigate } from 'react-router-dom'
-import { useCart } from '../../context/CartContext'
+import { useCart } from '../../context/useCart'
 
 const genreColors = {
   Action: 'bg-red-500',
@@ -14,13 +14,15 @@ const genreColors = {
 function MovieCard({ movie, onRent, onAddToCart }) {
   const navigate = useNavigate()
   const { isRented, isInCart } = useCart()
-  const rented = isRented(movie.id)
-  const inCart = isInCart(movie.id)
+  const movieId = movie._id || movie.id
+  const genreLabel = Array.isArray(movie.genre) ? movie.genre[0] : movie.genre
+  const rented = isRented(movieId)
+  const inCart = isInCart(movieId)
 
   return (
     <div
       className="group relative cursor-pointer overflow-hidden rounded-lg transition-transform duration-300 hover:scale-105"
-      onClick={() => navigate(`/movie/${movie.id}`)}
+      onClick={() => navigate(`/movie/${movieId}`)}
     >
       <div className="relative aspect-[2/3]">
         <img src={movie.poster} alt={movie.title} className="h-full w-full object-cover" />
@@ -31,10 +33,10 @@ function MovieCard({ movie, onRent, onAddToCart }) {
 
         <span
           className={`absolute bottom-2 left-2 rounded px-2 py-1 text-xs font-semibold ${
-            genreColors[movie.genre] || 'bg-gray-700'
+            genreColors[genreLabel] || 'bg-gray-700'
           }`}
         >
-          {movie.genre}
+          {genreLabel}
         </span>
       </div>
 
@@ -76,7 +78,7 @@ function MovieCard({ movie, onRent, onAddToCart }) {
                 onAddToCart(movie)
                 return
               }
-              navigate(`/movie/${movie.id}`)
+              navigate(`/movie/${movieId}`)
             }}
           >
             {rented ? 'Loue' : inCart ? 'Dans le panier' : '+ Panier'}

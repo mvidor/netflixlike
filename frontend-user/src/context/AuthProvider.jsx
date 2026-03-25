@@ -1,72 +1,49 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useEffect, useState } from 'react'
+import {
+  authAPI,
+  clearAuth,
+  getUser,
+  isAuthenticated as hasAuthToken,
+  saveAuth
+} from '../services/api'
 
 const AuthContext = createContext(null)
-
-const USER_STORAGE_KEY = 'user'
-const USERS_STORAGE_KEY = 'users'
-
-const readJson = (key, fallback) => {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(key) || '')
-    return parsed ?? fallback
-  } catch {
-    return fallback
-  }
-}
-
-const saveJson = (key, value) => {
-  localStorage.setItem(key, JSON.stringify(value))
-}
-
-const buildAvatarUrl = (nameOrEmail) =>
-  `https://ui-avatars.com/api/?name=${encodeURIComponent(nameOrEmail)}&background=e50914&color=fff`
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const storedUser = readJson(USER_STORAGE_KEY, null)
+    const initAuth = async () => {
+      const storedUser = getUser()
 
-    if (storedUser && typeof storedUser.email === 'string') {
-      const normalizedUser = {
-        ...storedUser,
-        name: storedUser.name || storedUser.email.split('@')[0],
-        avatar:
-          storedUser.avatar || buildAvatarUrl(storedUser.name || storedUser.email)
+      if (!hasAuthToken()) {
+        setUser(storedUser)
+        setLoading(false)
+        return
       }
-      setUser(normalizedUser)
-      saveJson(USER_STORAGE_KEY, normalizedUser)
-    } else {
-      setUser(null)
+
+      try {
+        const response = await authAPI.getMe()
+        setUser(response.user)
+        saveAuth(localStorage.getItem('token'), response.user)
+      } catch {
+        clearAuth()
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
     }
 
-    setLoading(false)
+    initAuth()
   }, [])
 
   const login = async (email, password) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      const users = readJson(USERS_STORAGE_KEY, [])
-      const matchedUser = users.find(
-        (item) => item.email.toLowerCase() === email.toLowerCase()
-      )
-
-      if (!matchedUser || matchedUser.password !== password) {
-        return { success: false, error: 'Email ou mot de passe incorrect' }
-      }
-
-      const nextUser = {
-        id: matchedUser.id ?? Date.now(),
-        email: matchedUser.email,
-        name: matchedUser.name || matchedUser.email.split('@')[0],
-        avatar: matchedUser.avatar || buildAvatarUrl(matchedUser.name || matchedUser.email)
-      }
-
-      setUser(nextUser)
-      saveJson(USER_STORAGE_KEY, nextUser)
-      return { success: true }
+      const response = await authAPI.login({ email, password })
+      saveAuth(response.token, response.user)
+      setUser(response.user)
+      return { success: true, user: response.user }
     } catch (error) {
       return { success: false, error: error.message }
     }
@@ -74,80 +51,76 @@ export function AuthProvider({ children }) {
 
   const register = async (name, email, password) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      const users = readJson(USERS_STORAGE_KEY, [])
-      const alreadyExists = users.some(
-        (item) => item.email.toLowerCase() === email.toLowerCase()
-      )
-
-      if (alreadyExists) {
-        return { success: false, error: 'Cet email existe deja' }
-      }
-
-      const createdUser = {
-        id: Date.now(),
-        name,
-        email,
-        password,
-        avatar: buildAvatarUrl(name || email)
-      }
-
-      saveJson(USERS_STORAGE_KEY, [...users, createdUser])
-
-      const sessionUser = {
-        id: createdUser.id,
-        name: createdUser.name,
-        email: createdUser.email,
-        avatar: createdUser.avatar
-      }
-
-      setUser(sessionUser)
-      saveJson(USER_STORAGE_KEY, sessionUser)
-      return { success: true }
+      const response = await authAPI.register({ name, email, password })
+      saveAuth(response.token, response.user)
+      setUser(response.user)
+      return { success: true, user: response.user }
     } catch (error) {
       return { success: false, error: error.message }
     }
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem(USER_STORAGE_KEY)
+  const logout = async () => {
+    try {
+      if (hasAuthToken()) {
+        await authAPI.logout()
+      }
+    } catch {
+      // La suppression locale suffit si le token est deja invalide
+    } finally {
+      clearAuth()
+      setUser(null)
+    }
   }
 
-  const isAuthenticated = () => user !== null
+  const isAuthenticated = () => hasAuthToken()
 
-  const updateProfile = (updates) => {
-    if (!user) {
-      return
+  const updateProfile = async (updates) => {
+    try {
+      const response = await authAPI.updateProfile(updates)
+      const currentToken = localStorage.getItem('token')
+      saveAuth(currentToken, response.user)
+      setUser(response.user)
+      return { success: true, user: response.user, message: response.message }
+    } catch (error) {
+      return { success: false, error: error.message }
     }
-
-    const updatedUser = {
-      ...user,
-      ...updates
-    }
-
-    setUser(updatedUser)
-    saveJson(USER_STORAGE_KEY, updatedUser)
-
-    const users = readJson(USERS_STORAGE_KEY, [])
-    const updatedUsers = users.map((item) =>
-      item.email.toLowerCase() === user.email.toLowerCase() ? { ...item, ...updates } : item
-    )
-    saveJson(USERS_STORAGE_KEY, updatedUsers)
   }
 
-  const value = { user, loading, login, register, logout, isAuthenticated, updateProfile }
+  const changePassword = async (passwords) => {
+    try {
+      const response = await authAPI.changePassword(passwords)
+      return { success: true, message: response.message }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  const refreshUser = async () => {
+    try {
+      const response = await authAPI.getMe()
+      const currentToken = localStorage.getItem('token')
+      saveAuth(currentToken, response.user)
+      setUser(response.user)
+      return response.user
+    } catch {
+      return null
+    }
+  }
+
+  const value = {
+    user,
+    loading,
+    login,
+    register,
+    logout,
+    isAuthenticated,
+    updateProfile,
+    changePassword,
+    refreshUser
+  }
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-
-  return context
-}
+export { AuthContext }

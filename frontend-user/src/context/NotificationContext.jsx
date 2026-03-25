@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useState } from 'react'
 
 const NotificationContext = createContext(null)
 
@@ -45,7 +45,7 @@ export function NotificationProvider({ children }) {
 
 function ToastContainer({ notifications, onClose }) {
   return (
-    <div className="fixed right-4 top-20 z-[100] space-y-2">
+    <div className="fixed right-4 top-20 z-50 space-y-2">
       {notifications.map((notification) => (
         <Toast
           key={notification.id}
@@ -67,7 +67,7 @@ function Toast({ notification, onClose }) {
 
   return (
     <div
-      className={`${colors[notification.type] || colors.info} flex min-w-[280px] items-center justify-between gap-3 rounded-lg px-5 py-3 shadow-xl`}
+      className={`${colors[notification.type] || colors.info} flex min-w-72 items-center justify-between gap-3 rounded-lg px-5 py-3 shadow-xl`}
     >
       <span>{notification.message}</span>
       <button type="button" onClick={onClose} className="text-sm opacity-80 transition hover:opacity-100">
@@ -77,12 +77,4 @@ function Toast({ notification, onClose }) {
   )
 }
 
-export function useNotification() {
-  const context = useContext(NotificationContext)
-
-  if (!context) {
-    throw new Error('useNotification must be used within NotificationProvider')
-  }
-
-  return context
-}
+export { NotificationContext }

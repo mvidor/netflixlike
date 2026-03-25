@@ -1,96 +1,126 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import Footer from '../components/layout/Footer'
-import { allMovies } from '../data/movies'
-import { useCart } from '../context/CartContext'
+import Button from '../components/common/Button'
+import { useCart } from '../context/useCart'
+import { useNotification } from '../context/useNotification'
+
+const tabs = [
+  { key: 'all', label: 'Toutes' },
+  { key: 'active', label: 'Actives' },
+  { key: 'expired', label: 'Expirees' },
+  { key: 'cancelled', label: 'Annulees' }
+]
 
 const MyRentals = () => {
-  const { rentals } = useCart()
+  const { rentals, refreshRentals, cancelRental } = useCart()
+  const { success, error } = useNotification()
+  const [activeTab, setActiveTab] = useState('all')
+  const [loading, setLoading] = useState(true)
 
-  const now = new Date()
-  const activeRentals = rentals.filter((rental) => {
-    const expiryDate = new Date(rental.expiryDate)
-    return !Number.isNaN(expiryDate.getTime()) && expiryDate >= now
-  })
-
-  const expiredRentals = rentals.filter((rental) => {
-    const expiryDate = new Date(rental.expiryDate)
-    return Number.isNaN(expiryDate.getTime()) || expiryDate < now
-  })
-
-  const getDaysLeft = (expiryDate) => {
-    const date = new Date(expiryDate)
-    if (Number.isNaN(date.getTime())) {
-      return 0
+  useEffect(() => {
+    const loadRentals = async () => {
+      try {
+        await refreshRentals()
+      } finally {
+        setLoading(false)
+      }
     }
 
-    return Math.max(0, Math.ceil((date - now) / (1000 * 60 * 60 * 24)))
+    loadRentals()
+  }, [refreshRentals])
+
+  const displayedRentals = useMemo(() => {
+    if (activeTab === 'all') {
+      return rentals
+    }
+
+    return rentals.filter((rental) => rental.status === activeTab)
+  }, [activeTab, rentals])
+
+  const handleCancel = async (rentalId) => {
+    try {
+      const response = await cancelRental(rentalId)
+      success(response.message || 'Location annulee')
+    } catch (err) {
+      error(err.message || 'Impossible d annuler la location')
+    }
   }
 
   return (
     <div className="min-h-screen bg-netflix-black text-white">
-      <Header movies={allMovies} onSearch={() => {}} />
+      <Header onSearch={() => {}} />
 
       <main className="container mx-auto px-4 py-24">
         <h1 className="mb-8 text-4xl font-bold">Mes locations</h1>
 
-        {activeRentals.length > 0 ? (
-          <section className="mb-12">
-            <h2 className="mb-4 text-2xl font-bold text-green-400">Actives ({activeRentals.length})</h2>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {activeRentals.map((rental) => (
-                <article key={rental.id} className="group relative">
-                  <Link to={`/movie/${rental.movieId}`}>
-                    <img
-                      src={rental.poster}
-                      alt={rental.title}
-                      className="w-full rounded-lg transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <div className="mt-2">
-                      <h3 className="truncate font-semibold">{rental.title}</h3>
-                      <p className="text-sm text-green-400">Expire dans {getDaysLeft(rental.expiryDate)} jour(s)</p>
-                    </div>
-                  </Link>
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
+        <div className="mb-8 flex flex-wrap gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={`rounded px-4 py-2 text-sm font-semibold ${
+                activeTab === tab.key ? 'bg-primary text-white' : 'bg-slate-800 text-gray-300'
+              }`}
+            >
+              {tab.label} ({tab.key === 'all' ? rentals.length : rentals.filter((item) => item.status === tab.key).length})
+            </button>
+          ))}
+        </div>
 
-        {expiredRentals.length > 0 ? (
-          <section>
-            <h2 className="mb-4 text-2xl font-bold text-gray-400">Expirees ({expiredRentals.length})</h2>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {expiredRentals.map((rental) => (
-                <article key={rental.id} className="opacity-50">
-                  <img
-                    src={rental.poster}
-                    alt={rental.title}
-                    className="w-full rounded-lg grayscale"
-                  />
-                  <div className="mt-2">
-                    <h3 className="truncate font-semibold">{rental.title}</h3>
-                    <p className="text-sm text-red-400">Expire</p>
+        {loading ? <div className="text-gray-400">Chargement des locations...</div> : null}
+
+        {!loading && displayedRentals.length > 0 ? (
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {displayedRentals.map((rental) => (
+              <article key={rental._id} className="rounded-lg border border-gray-800 bg-slate-900/70 p-3">
+                <img src={rental.poster} alt={rental.title} className="h-72 w-full rounded-lg object-cover" />
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="line-clamp-1 font-semibold">{rental.title}</h3>
+                    <span
+                      className={`rounded px-2 py-1 text-xs font-bold ${
+                        rental.status === 'active'
+                          ? 'bg-green-600'
+                          : rental.status === 'cancelled'
+                            ? 'bg-red-600'
+                            : 'bg-gray-600'
+                      }`}
+                    >
+                      {rental.status}
+                    </span>
                   </div>
-                </article>
-              ))}
-            </div>
+                  <p className="text-sm text-gray-400">
+                    Loue le {new Date(rental.rentalDate).toLocaleDateString('fr-FR')}
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Expire le {new Date(rental.expiryDate).toLocaleDateString('fr-FR')}
+                  </p>
+                  <div className="flex gap-2 pt-2">
+                    <Link to={`/movie/${rental.movieId}`} className="flex-1">
+                      <Button variant="secondary" className="w-full">
+                        Voir le film
+                      </Button>
+                    </Link>
+                    {rental.status === 'active' ? (
+                      <Button className="flex-1" onClick={() => handleCancel(rental._id)}>
+                        Annuler
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              </article>
+            ))}
           </section>
         ) : null}
 
-        {rentals.length === 0 ? (
+        {!loading && rentals.length === 0 ? (
           <div className="py-20 text-center">
-            <svg className="mx-auto h-24 w-24 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 4v16M17 4v16M3 8h18M3 16h18M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"
-              />
-            </svg>
             <p className="mb-6 mt-6 text-2xl text-gray-400">Aucune location pour le moment</p>
             <Link to="/">
-              <button className="bg-primary hover:bg-primary-dark rounded-lg px-6 py-3 font-semibold transition">
+              <button className="rounded-lg bg-primary px-6 py-3 font-semibold transition hover:bg-red-700">
                 Decouvrir des films
               </button>
             </Link>

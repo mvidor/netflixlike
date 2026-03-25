@@ -67,7 +67,7 @@ function MovieCarousel({ title, movies }) {
         style={{ scrollbarWidth: 'none' }}
       >
         {movies.map((movie) => (
-          <div key={movie.id} className="w-48 shrink-0">
+          <div key={movie._id || movie.id} className="w-48 shrink-0">
             <MovieCard movie={movie} />
           </div>
         ))}

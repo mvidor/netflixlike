@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Input from '../components/common/Input'
 import Button from '../components/common/Button'
-import { useAuth } from '../context/AuthProvider'
-import { useNotification } from '../context/NotificationContext'
+import { useAuth } from '../context/useAuth'
+import { useNotification } from '../context/useNotification'
 
 const Register = () => {
   const navigate = useNavigate()

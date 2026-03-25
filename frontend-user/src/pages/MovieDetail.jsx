@@ -1,13 +1,14 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import Footer from '../components/layout/Footer'
 import Button from '../components/common/Button'
 import Breadcrumb from '../components/common/Breadcrumb'
-import { allMovies } from '../data/movies'
-import { useAuth } from '../context/AuthProvider'
-import { useCart } from '../context/CartContext'
-import { useNotification } from '../context/NotificationContext'
+import MovieList from '../components/movies/MovieList'
+import { useAuth } from '../context/useAuth'
+import { useCart } from '../context/useCart'
+import { useNotification } from '../context/useNotification'
+import { moviesAPI } from '../services/api'
 
 const MovieDetail = () => {
   const navigate = useNavigate()
@@ -16,27 +17,46 @@ const MovieDetail = () => {
   const { isAuthenticated } = useAuth()
   const { addToCart, rentMovie, isRented, isInCart, getRentalByMovieId } = useCart()
   const { success, error, info } = useNotification()
+  const [movie, setMovie] = useState(null)
+  const [similarMovies, setSimilarMovies] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const movie = useMemo(() => allMovies.find((item) => item.id === Number(id)), [id])
+  useEffect(() => {
+    const loadMovie = async () => {
+      try {
+        const [movieResponse, similarResponse] = await Promise.all([
+          moviesAPI.getById(id),
+          moviesAPI.getSimilar(id)
+        ])
 
-  const handleRent = () => {
+        setMovie(movieResponse.data)
+        setSimilarMovies(similarResponse.data || [])
+      } catch {
+        setMovie(null)
+        setSimilarMovies([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadMovie()
+  }, [id])
+
+  const handleRent = async () => {
     if (!isAuthenticated()) {
       info('Connectez-vous pour louer ce film.')
       navigate('/login', { state: { from: location } })
       return
     }
 
-    const result = rentMovie(movie)
+    const result = await rentMovie(movie)
     if (!result.success) {
       error(result.error || 'Location impossible.')
       return
     }
 
     success('Film loue avec succes.')
-
-    setTimeout(() => {
-      navigate('/my-rentals')
-    }, 2000)
+    navigate('/my-rentals')
   }
 
   const handleAddToCart = () => {
@@ -55,6 +75,10 @@ const MovieDetail = () => {
     success('Film ajoute au panier.')
   }
 
+  if (loading) {
+    return <div className="min-h-screen bg-netflix-black px-4 py-24 text-white">Chargement...</div>
+  }
+
   if (!movie) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-netflix-black px-4 text-white">
@@ -67,15 +91,15 @@ const MovieDetail = () => {
     )
   }
 
-  const rented = isRented(movie.id)
-  const inCart = isInCart(movie.id)
-  const rental = getRentalByMovieId(movie.id)
+  const rented = isRented(movie._id)
+  const inCart = isInCart(movie._id)
+  const rental = getRentalByMovieId(movie._id)
 
   return (
     <div className="min-h-screen bg-netflix-black text-white">
-      <Header movies={allMovies} onSearch={() => {}} />
+      <Header onSearch={() => {}} />
       <main className="pt-16">
-        <section className="relative min-h-[65vh]">
+        <section className="relative" style={{ minHeight: '65vh' }}>
           <img src={movie.backdrop} alt={movie.title} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-black/40" />
           <div className="relative container mx-auto px-4 py-16">
@@ -100,17 +124,25 @@ const MovieDetail = () => {
           </div>
         </section>
 
-        <section className="container mx-auto grid gap-8 px-4 py-10 md:grid-cols-[220px_1fr]">
-          <img src={movie.poster} alt={`Poster ${movie.title}`} className="w-full max-w-[220px] rounded-lg object-cover" />
-          <div>
-            <h2 className="text-2xl font-bold">Informations</h2>
-            <p className="mt-3 text-gray-300">Prix de location: {movie.price} EUR</p>
+        <section className="container mx-auto grid gap-8 px-4 py-10 md:grid-cols-[260px_1fr]">
+          <img
+            src={movie.poster}
+            alt={`Poster ${movie.title}`}
+            className="w-full rounded-lg object-cover"
+            style={{ maxWidth: '260px' }}
+          />
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold">Synopsis</h2>
+              <p className="mt-3 text-gray-300">{movie.description}</p>
+            </div>
+
             {rented ? (
-              <div className="mt-6 inline-flex rounded bg-green-700 px-4 py-2 text-sm font-semibold text-white">
+              <div className="inline-flex rounded bg-green-700 px-4 py-2 text-sm font-semibold text-white">
                 Film loue jusqu'au {new Date(rental?.expiryDate || '').toLocaleDateString('fr-FR')}
               </div>
             ) : (
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <Button size="lg" className="sm:flex-1" onClick={handleRent}>
                   Louer maintenant - {movie.price} EUR
                 </Button>
@@ -125,7 +157,22 @@ const MovieDetail = () => {
                 </Button>
               </div>
             )}
+
+            <div className="rounded-lg border border-gray-800 bg-slate-900/70 p-5">
+              <h3 className="mb-4 text-xl font-bold">Informations</h3>
+              <div className="grid gap-3 text-sm text-gray-300">
+                <div>Genre: {movie.genre}</div>
+                <div>Annee: {movie.year}</div>
+                <div>Duree: {movie.duration} min</div>
+                <div>Note: {movie.rating}/10</div>
+                <div>Prix: {movie.price} EUR</div>
+              </div>
+            </div>
           </div>
+        </section>
+
+        <section className="pb-10">
+          <MovieList title="Films similaires" movies={similarMovies} onRent={async (item) => rentMovie(item)} onAddToCart={addToCart} />
         </section>
       </main>
       <Footer />

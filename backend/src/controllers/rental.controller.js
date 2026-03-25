@@ -147,8 +147,10 @@ export const cancelRental = async (req, res, next) => {
       });
     }
 
-    await rental.deleteOne();
-    res.status(200).json({ success: true, message: 'Location supprimee avec succes' });
+    rental.status = 'cancelled';
+    await rental.save();
+
+    res.status(200).json({ success: true, message: 'Location annulee avec succes' });
   } catch (error) {
     next(error);
   }

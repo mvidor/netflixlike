@@ -5,6 +5,7 @@ import MyRentals from './pages/MyRentals'
 import Cart from './pages/Cart'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Profile from './pages/Profile'
 import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import { AuthProvider } from './context/AuthProvider'
@@ -31,6 +32,14 @@ function App() {
               />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

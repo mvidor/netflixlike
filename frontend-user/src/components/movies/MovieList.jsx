@@ -7,7 +7,7 @@ function MovieList({ title, movies, onRent, onAddToCart }) {
 
       <div className="flex gap-4 overflow-x-auto px-4 pb-2">
         {movies.map((movie) => (
-          <div key={movie.id} className="w-40 shrink-0 sm:w-48 md:w-56">
+          <div key={movie._id || movie.id} className="w-40 shrink-0 sm:w-48 md:w-56">
             <MovieCard movie={movie} onRent={onRent} onAddToCart={onAddToCart} />
           </div>
         ))}

@@ -1,10 +1,10 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { useAuth } from './AuthProvider'
+import { createContext, useCallback, useEffect, useState } from 'react'
+import { rentalsAPI } from '../services/api'
+import { useAuth } from './useAuth'
 
 const CartContext = createContext(null)
 
 const CARTS_BY_USER_KEY = 'cartsByUser'
-const RENTALS_BY_USER_KEY = 'rentalsByUser'
 
 const readJson = (key, fallback) => {
   try {
@@ -15,64 +15,95 @@ const readJson = (key, fallback) => {
   }
 }
 
-const saveByUser = (key, email, items) => {
-  if (!email) {
+const saveByUser = (key, scope, items) => {
+  if (!scope) {
     return
   }
 
   const scopedData = readJson(key, {})
-  scopedData[email.toLowerCase()] = Array.isArray(items) ? items : []
+  scopedData[scope] = Array.isArray(items) ? items : []
   localStorage.setItem(key, JSON.stringify(scopedData))
 }
 
-const readByUser = (key, email) => {
-  if (!email) {
+const readByUser = (key, scope) => {
+  if (!scope) {
     return []
   }
 
   const scopedData = readJson(key, {})
-  const items = scopedData[email.toLowerCase()]
+  const items = scopedData[scope]
   return Array.isArray(items) ? items : []
 }
 
 export function CartProvider({ children }) {
-  const { user } = useAuth()
-  const email = user?.email ?? null
+  const { user, isAuthenticated } = useAuth()
+  const scope = user?.email?.toLowerCase() || user?._id || null
   const [cart, setCart] = useState([])
   const [rentals, setRentals] = useState([])
 
   useEffect(() => {
-    setCart(readByUser(CARTS_BY_USER_KEY, email))
-    setRentals(readByUser(RENTALS_BY_USER_KEY, email))
-  }, [email])
+    setCart(readByUser(CARTS_BY_USER_KEY, scope))
+  }, [scope])
 
   useEffect(() => {
-    saveByUser(CARTS_BY_USER_KEY, email, cart)
-  }, [cart, email])
+    saveByUser(CARTS_BY_USER_KEY, scope, cart)
+  }, [cart, scope])
 
   useEffect(() => {
-    saveByUser(RENTALS_BY_USER_KEY, email, rentals)
-  }, [rentals, email])
+    if (!isAuthenticated()) {
+      setRentals([])
+      return
+    }
+
+    const loadRentals = async () => {
+      try {
+        const response = await rentalsAPI.getMyRentals()
+        setRentals(response.data || [])
+      } catch {
+        setRentals([])
+      }
+    }
+
+    loadRentals()
+  }, [isAuthenticated, user?._id])
+
+  const refreshRentals = useCallback(async (params = {}) => {
+    if (!isAuthenticated()) {
+      setRentals([])
+      return []
+    }
+
+    const response = await rentalsAPI.getMyRentals(params)
+    setRentals(response.data || [])
+    return response.data || []
+  }, [isAuthenticated])
 
   const isRented = (movieId) =>
-    rentals.some((item) => item.movieId === movieId || item.id === movieId)
+    rentals.some((item) => item.movieId === movieId || item.movie?._id === movieId)
 
   const isInCart = (movieId) =>
-    cart.some((item) => item.movieId === movieId || item.id === movieId)
+    cart.some((item) => item.movieId === movieId || item._id === movieId || item.id === movieId)
 
   const addToCart = (movie) => {
-    if (!movie || isRented(movie.id) || isInCart(movie.id)) {
+    const movieId = movie?._id || movie?.id
+
+    if (!movie || !movieId || isRented(movieId) || isInCart(movieId)) {
       return false
     }
 
     setCart((current) => [
       ...current,
       {
-        id: movie.id,
-        movieId: movie.id,
+        id: movieId,
+        _id: movieId,
+        movieId,
         title: movie.title,
         poster: movie.poster,
-        price: movie.price
+        backdrop: movie.backdrop,
+        price: movie.price,
+        year: movie.year,
+        duration: movie.duration,
+        genre: movie.genre
       }
     ])
 
@@ -80,82 +111,64 @@ export function CartProvider({ children }) {
   }
 
   const removeFromCart = (movieId) => {
-    setCart((current) => current.filter((item) => item.movieId !== movieId && item.id !== movieId))
+    setCart((current) =>
+      current.filter((item) => item.movieId !== movieId && item._id !== movieId && item.id !== movieId)
+    )
   }
 
   const clearCart = () => {
     setCart([])
   }
 
-  const getCartTotal = () =>
-    cart.reduce((total, item) => total + (Number(item.price) || 0), 0)
+  const getCartTotal = () => cart.reduce((total, item) => total + (Number(item.price) || 0), 0)
 
   const getCartCount = () => cart.length
 
-  const rentMovie = (movie) => {
-    if (!email) {
+  const rentMovie = async (movie) => {
+    if (!isAuthenticated()) {
       return { success: false, error: 'Connexion requise' }
     }
 
-    if (!movie || isRented(movie.id)) {
-      return { success: false, error: 'Vous avez deja loue ce film.' }
+    const movieId = movie?._id || movie?.id
+    if (!movieId) {
+      return { success: false, error: 'Film invalide' }
     }
 
-    const rentalDate = new Date()
-    const expiryDate = new Date()
-    expiryDate.setDate(expiryDate.getDate() + 7)
-
-    const rental = {
-      id: Date.now(),
-      movieId: movie.id,
-      title: movie.title,
-      poster: movie.poster,
-      price: movie.price,
-      rentalDate: rentalDate.toISOString(),
-      expiryDate: expiryDate.toISOString()
+    try {
+      const response = await rentalsAPI.rent(movieId)
+      setRentals((current) => [...current, response.data])
+      removeFromCart(movieId)
+      return { success: true, rental: response.data }
+    } catch (error) {
+      return { success: false, error: error.message }
     }
-
-    setRentals((current) => [...current, rental])
-    removeFromCart(movie.id)
-
-    return { success: true, rental }
   }
 
-  const rentAllInCart = () => {
-    if (!email || cart.length === 0) {
+  const rentAllInCart = async () => {
+    if (!isAuthenticated() || cart.length === 0) {
       return { success: false, count: 0 }
     }
 
-    const rentalDate = new Date()
-    const expiryDate = new Date()
-    expiryDate.setDate(expiryDate.getDate() + 7)
+    let count = 0
 
-    const rentedIds = new Set(rentals.map((item) => item.movieId || item.id))
-    const nextRentals = cart
-      .filter((item) => !rentedIds.has(item.movieId || item.id))
-      .map((item, index) => ({
-        id: Date.now() + index,
-        movieId: item.movieId || item.id,
-        title: item.title,
-        poster: item.poster,
-        price: item.price,
-        rentalDate: rentalDate.toISOString(),
-        expiryDate: expiryDate.toISOString()
-      }))
-
-    if (nextRentals.length === 0) {
-      clearCart()
-      return { success: false, count: 0 }
+    for (const item of cart) {
+      const result = await rentMovie(item)
+      if (result.success) {
+        count += 1
+      }
     }
 
-    setRentals((current) => [...current, ...nextRentals])
-    clearCart()
+    return { success: count > 0, count }
+  }
 
-    return { success: true, count: nextRentals.length }
+  const cancelRental = async (rentalId) => {
+    const response = await rentalsAPI.cancel(rentalId)
+    await refreshRentals()
+    return response
   }
 
   const getRentalByMovieId = (movieId) =>
-    rentals.find((item) => item.movieId === movieId || item.id === movieId) ?? null
+    rentals.find((item) => item.movieId === movieId || item.movie?._id === movieId) ?? null
 
   const value = {
     cart,
@@ -167,6 +180,8 @@ export function CartProvider({ children }) {
     getCartCount,
     rentMovie,
     rentAllInCart,
+    cancelRental,
+    refreshRentals,
     isRented,
     getRentalByMovieId,
     isInCart
@@ -175,12 +190,4 @@ export function CartProvider({ children }) {
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }
 
-export function useCart() {
-  const context = useContext(CartContext)
-
-  if (!context) {
-    throw new Error('useCart must be used within CartProvider')
-  }
-
-  return context
-}
+export { CartContext }

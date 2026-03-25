@@ -1,30 +1,45 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { moviesAPI } from '../../services/api'
 
-function SearchBar({ movies, onSearch }) {
+function SearchBar({ onSearch }) {
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [isOpen, setIsOpen] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
 
-  const suggestions = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase()
-    if (term.length < 2) {
-      return []
+  useEffect(() => {
+    const loadSuggestions = async () => {
+      const term = searchTerm.trim()
+
+      if (term.length < 2) {
+        setSuggestions([])
+        return
+      }
+
+      try {
+        const response = await moviesAPI.search({ search: term, limit: 5 })
+        setSuggestions(response.data || [])
+        setIsOpen(true)
+      } catch {
+        setSuggestions([])
+      }
     }
 
-    return movies
-      .filter((movie) => {
-        const title = movie.title.toLowerCase()
-        const description = movie.description.toLowerCase()
-        return title.includes(term) || description.includes(term)
-      })
-      .slice(0, 5)
-  }, [searchTerm, movies])
+    const timeoutId = setTimeout(loadSuggestions, 250)
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm])
 
   const handleSelect = (movie) => {
     setSearchTerm(movie.title)
     setIsOpen(false)
+
     if (onSearch) {
       onSearch(movie)
+      return
     }
+
+    navigate(`/movie/${movie._id}`)
   }
 
   return (
@@ -33,12 +48,9 @@ function SearchBar({ movies, onSearch }) {
         <input
           type="text"
           value={searchTerm}
-          onChange={(event) => {
-            setSearchTerm(event.target.value)
-            setIsOpen(true)
-          }}
+          onChange={(event) => setSearchTerm(event.target.value)}
           onFocus={() => {
-            if (searchTerm.trim().length >= 2 && suggestions.length > 0) {
+            if (suggestions.length > 0) {
               setIsOpen(true)
             }
           }}
@@ -64,16 +76,12 @@ function SearchBar({ movies, onSearch }) {
         <div className="absolute left-0 right-0 mt-2 rounded-lg border border-gray-700 bg-gray-900 shadow-xl">
           {suggestions.map((movie) => (
             <button
-              key={movie.id}
+              key={movie._id}
               type="button"
               onClick={() => handleSelect(movie)}
               className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-gray-800"
             >
-              <img
-                src={movie.poster}
-                alt={movie.title}
-                className="h-12 w-8 rounded object-cover"
-              />
+              <img src={movie.poster} alt={movie.title} className="h-12 w-8 rounded object-cover" />
               <div>
                 <div className="text-sm font-semibold text-white">{movie.title}</div>
                 <div className="text-xs text-gray-400">

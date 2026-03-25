@@ -3,7 +3,12 @@ import { useState } from 'react'
 function MovieFilter({ movies, onFilter }) {
   const [selectedGenre, setSelectedGenre] = useState('all')
 
-  const genres = ['all', ...new Set(movies.map((movie) => movie.genre))]
+  const genres = [
+    'all',
+    ...new Set(
+      movies.flatMap((movie) => (Array.isArray(movie.genres) ? movie.genres : [movie.genre].filter(Boolean)))
+    )
+  ]
 
   const handleGenreChange = (genre) => {
     setSelectedGenre(genre)
@@ -13,7 +18,10 @@ function MovieFilter({ movies, onFilter }) {
       return
     }
 
-    const filtered = movies.filter((movie) => movie.genre === genre)
+    const filtered = movies.filter((movie) => {
+      const movieGenres = Array.isArray(movie.genres) ? movie.genres : [movie.genre].filter(Boolean)
+      return movieGenres.includes(genre)
+    })
     onFilter(filtered)
   }
 

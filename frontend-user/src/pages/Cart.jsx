@@ -3,10 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import Footer from '../components/layout/Footer'
 import Button from '../components/common/Button'
-import { allMovies } from '../data/movies'
-import { useCart } from '../context/CartContext'
-import { useAuth } from '../context/AuthProvider'
-import { useNotification } from '../context/NotificationContext'
+import { useCart } from '../context/useCart'
+import { useAuth } from '../context/useAuth'
+import { useNotification } from '../context/useNotification'
 
 function Cart() {
   const navigate = useNavigate()
@@ -14,24 +13,16 @@ function Cart() {
   const { cart, removeFromCart, clearCart, rentAllInCart, getCartTotal } = useCart()
   const { success, info, warning } = useNotification()
 
-  const cartMovies = useMemo(
-    () =>
-      cart.map((item) => {
-        const movieId = item.movieId || item.id
-        const fullMovie = allMovies.find((movie) => movie.id === movieId)
-        return { ...fullMovie, ...item, movieId }
-      }),
-    [cart]
-  )
+  const cartMovies = useMemo(() => cart.map((item) => ({ ...item, movieId: item.movieId || item._id || item.id })), [cart])
 
-  const handleRentAll = () => {
+  const handleRentAll = async () => {
     if (!isAuthenticated()) {
       info('Connectez-vous pour louer le panier.')
       navigate('/login', { state: { from: { pathname: '/cart' } } })
       return
     }
 
-    const result = rentAllInCart()
+    const result = await rentAllInCart()
     if (result.success) {
       success(`${result.count} film(s) loue(s) avec succes.`)
       navigate('/my-rentals')
@@ -44,7 +35,7 @@ function Cart() {
   if (cart.length === 0) {
     return (
       <div className="min-h-screen bg-netflix-black text-white">
-        <Header movies={allMovies} onSearch={() => {}} />
+        <Header onSearch={() => {}} />
         <main className="container mx-auto px-4 py-24">
           <h1 className="mb-8 text-4xl font-bold">Mon Panier</h1>
 
@@ -70,7 +61,7 @@ function Cart() {
 
   return (
     <div className="min-h-screen bg-netflix-black text-white">
-      <Header movies={allMovies} onSearch={() => {}} />
+      <Header onSearch={() => {}} />
 
       <main className="container mx-auto px-4 py-24">
         <h1 className="mb-8 text-4xl font-bold">Mon Panier</h1>
