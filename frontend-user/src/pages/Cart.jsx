@@ -6,6 +6,7 @@ import Button from '../components/common/Button'
 import { useCart } from '../context/useCart'
 import { useAuth } from '../context/useAuth'
 import { useNotification } from '../context/useNotification'
+import { getPosterSources, handleImageFallback } from '../utils/movieImages'
 
 function Cart() {
   const navigate = useNavigate()
@@ -74,9 +75,10 @@ function Cart() {
                 className="flex items-center rounded-lg border border-gray-800 bg-slate-900/70 p-4"
               >
                 <img
-                  src={movie.poster}
+                  src={getPosterSources(movie)[0]}
                   alt={movie.title}
                   className="h-28 w-20 rounded object-cover"
+                  onError={(event) => handleImageFallback(event, getPosterSources(movie))}
                 />
 
                 <div className="ml-4 flex-1">

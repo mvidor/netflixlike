@@ -216,6 +216,19 @@ export const moviesAPI = {
   },
 
   /**
+   * Obtenir des films aleatoires
+   * @param {number} limit - Nombre maximum de films
+   */
+  getRandom: async (limit = 5) => {
+    const response = await fetchAPI(`/movies/random?limit=${limit}`)
+
+    return {
+      ...response,
+      data: Array.isArray(response.data) ? response.data.map(normalizeMovie) : []
+    }
+  },
+
+  /**
    * Creer un nouveau film (admin)
    * @param {object} movieData - Donnees du film
    */
@@ -354,6 +367,19 @@ export const rentalsAPI = {
    */
   getStats: async () => {
     return await fetchAPI('/rentals/stats')
+  },
+
+  /**
+   * Obtenir des recommandations personnalisees
+   * @param {number} limit - Nombre maximum de films
+   */
+  getRecommendations: async (limit = 10) => {
+    const response = await fetchAPI(`/rentals/recommendations?limit=${limit}`)
+
+    return {
+      ...response,
+      data: Array.isArray(response.data) ? response.data.map(normalizeMovie) : []
+    }
   }
 }
 

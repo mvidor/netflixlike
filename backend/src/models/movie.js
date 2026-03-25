@@ -127,8 +127,11 @@ movieSchema.virtual("durationFormatted").get(function () {
 
 // MÉTHODE pour incrémenter le compteur de location
 movieSchema.methods.incrementRentalCount = async function () {
-  this.rentalCount += 1;
-  return await this.save();
+  return await this.constructor.findByIdAndUpdate(
+    this._id,
+    { $inc: { rentalCount: 1 } },
+    { new: true }
+  );
 };
 
 // MÉTHODE STATIQUE pour obtenir les films récents
@@ -141,6 +144,14 @@ movieSchema.statics.getPopularMovies = function (limit = 10) {
   return this.find({ isAvailable: true })
     .sort({ rentalCount: -1, rating: -1 })
     .limit(limit);
+};
+
+// MÉTHODE STATIQUE pour obtenir des films aléatoires
+movieSchema.statics.getRandomMovies = function (limit = 10) {
+  return this.aggregate([
+    { $match: { isAvailable: true } },
+    { $sample: { size: limit } },
+  ]);
 };
 
 // MÉTHODE STATIQUE pour rechercher des films

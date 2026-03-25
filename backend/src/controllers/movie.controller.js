@@ -75,6 +75,20 @@ export const getAllMovies = async (req, res, next) => {
   }
 };
 
+// @desc    Obtenir des films aleatoires
+// @route   GET /api/movies/random
+// @access  Public
+export const getRandomMovies = async (req, res, next) => {
+  try {
+    const limit = Math.max(Number.parseInt(req.query.limit, 10) || 10, 1);
+    const movies = await Movie.getRandomMovies(limit);
+
+    res.status(200).json({ success: true, count: movies.length, data: movies });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Obtenir un film par ID
 // @route   GET /api/movies/:id
 // @access  Public

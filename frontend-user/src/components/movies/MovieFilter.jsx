@@ -1,8 +1,4 @@
-import { useState } from 'react'
-
-function MovieFilter({ movies, onFilter }) {
-  const [selectedGenre, setSelectedGenre] = useState('all')
-
+function MovieFilter({ movies, selectedGenre = 'all', onGenreChange }) {
   const genres = [
     'all',
     ...new Set(
@@ -10,27 +6,13 @@ function MovieFilter({ movies, onFilter }) {
     )
   ]
 
-  const handleGenreChange = (genre) => {
-    setSelectedGenre(genre)
-
-    if (genre === 'all') {
-      onFilter(movies)
-      return
-    }
-
-    const filtered = movies.filter((movie) => {
-      const movieGenres = Array.isArray(movie.genres) ? movie.genres : [movie.genre].filter(Boolean)
-      return movieGenres.includes(genre)
-    })
-    onFilter(filtered)
-  }
-
   return (
     <div className="flex flex-wrap gap-2 px-4 pb-2 pt-4">
       {genres.map((genre) => (
         <button
           key={genre}
-          onClick={() => handleGenreChange(genre)}
+          type="button"
+          onClick={() => onGenreChange?.(genre)}
           className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
             selectedGenre === genre
               ? 'bg-primary text-white'

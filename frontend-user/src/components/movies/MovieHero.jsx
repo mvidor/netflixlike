@@ -1,12 +1,19 @@
 import Button from '../common/Button'
+import { getBackdropSources, handleImageFallback } from '../../utils/movieImages'
 
 function MovieHero({ movie, onMoreInfo, onRent }) {
   const genreLabel = Array.isArray(movie.genre) ? movie.genre[0] : movie.genre
+  const backdropSources = getBackdropSources(movie)
 
   return (
     <div className="relative w-full" style={{ height: '80vh' }}>
       <div className="absolute inset-0">
-        <img src={movie.backdrop} alt={movie.title} className="h-full w-full object-cover" />
+        <img
+          src={backdropSources[0]}
+          alt={movie.title}
+          className="h-full w-full object-cover"
+          onError={(event) => handleImageFallback(event, backdropSources)}
+        />
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
       </div>

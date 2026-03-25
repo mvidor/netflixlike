@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const rentalSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: '5A_User',
     required: true
   },
   movie: {
@@ -101,6 +101,6 @@ rentalSchema.pre(/^find/, async function() {
   );
 });
 
-const Rental = mongoose.model('Rental', rentalSchema);
+const Rental = mongoose.model('5A_Rental', rentalSchema);
 
 export default Rental;

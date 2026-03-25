@@ -9,6 +9,7 @@ import { useAuth } from '../context/useAuth'
 import { useCart } from '../context/useCart'
 import { useNotification } from '../context/useNotification'
 import { moviesAPI } from '../services/api'
+import { getBackdropSources, getPosterSources, handleImageFallback } from '../utils/movieImages'
 
 const MovieDetail = () => {
   const navigate = useNavigate()
@@ -94,13 +95,20 @@ const MovieDetail = () => {
   const rented = isRented(movie._id)
   const inCart = isInCart(movie._id)
   const rental = getRentalByMovieId(movie._id)
+  const backdropSources = getBackdropSources(movie)
+  const posterSources = getPosterSources(movie)
 
   return (
     <div className="min-h-screen bg-netflix-black text-white">
       <Header onSearch={() => {}} />
       <main className="pt-16">
         <section className="relative" style={{ minHeight: '65vh' }}>
-          <img src={movie.backdrop} alt={movie.title} className="absolute inset-0 h-full w-full object-cover" />
+          <img
+            src={backdropSources[0]}
+            alt={movie.title}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(event) => handleImageFallback(event, backdropSources)}
+          />
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-black/40" />
           <div className="relative container mx-auto px-4 py-16">
             <Breadcrumb
@@ -126,10 +134,11 @@ const MovieDetail = () => {
 
         <section className="container mx-auto grid gap-8 px-4 py-10 md:grid-cols-[260px_1fr]">
           <img
-            src={movie.poster}
+            src={posterSources[0]}
             alt={`Poster ${movie.title}`}
             className="w-full rounded-lg object-cover"
             style={{ maxWidth: '260px' }}
+            onError={(event) => handleImageFallback(event, posterSources)}
           />
           <div className="space-y-6">
             <div>

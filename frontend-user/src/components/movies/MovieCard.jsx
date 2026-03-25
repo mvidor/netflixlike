@@ -1,6 +1,7 @@
 import Button from '../common/Button'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/useCart'
+import { getPosterSources, handleImageFallback } from '../../utils/movieImages'
 
 const genreColors = {
   Action: 'bg-red-500',
@@ -16,6 +17,7 @@ function MovieCard({ movie, onRent, onAddToCart }) {
   const { isRented, isInCart } = useCart()
   const movieId = movie._id || movie.id
   const genreLabel = Array.isArray(movie.genre) ? movie.genre[0] : movie.genre
+  const posterSources = getPosterSources(movie)
   const rented = isRented(movieId)
   const inCart = isInCart(movieId)
 
@@ -25,7 +27,12 @@ function MovieCard({ movie, onRent, onAddToCart }) {
       onClick={() => navigate(`/movie/${movieId}`)}
     >
       <div className="relative aspect-[2/3]">
-        <img src={movie.poster} alt={movie.title} className="h-full w-full object-cover" />
+        <img
+          src={posterSources[0]}
+          alt={movie.title}
+          className="h-full w-full object-cover"
+          onError={(event) => handleImageFallback(event, posterSources)}
+        />
 
         <div className="absolute right-2 top-2 rounded bg-black/80 px-2 py-1 backdrop-blur-sm">
           <span className="text-sm font-bold text-yellow-400">* {movie.rating}</span>

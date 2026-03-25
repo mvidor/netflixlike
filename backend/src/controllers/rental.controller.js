@@ -196,10 +196,14 @@ export const getRecommendations = async (req, res, next) => {
   try {
     const userId = requireUserId(req);
     await getUserOr404(userId);
+    const limit = Math.max(Number.parseInt(req.query.limit, 10) || 10, 1);
 
     const rentalHistory = await Rental.find({ user: userId }).populate('movie').sort({ rentalDate: -1 });
     if (!rentalHistory.length) {
-      const popularMovies = await Movie.find({ isAvailable: true }).sort({ rentalCount: -1, rating: -1 }).limit(6);
+      const popularMovies = await Movie.find({ isAvailable: true })
+        .sort({ rentalCount: -1, rating: -1 })
+        .limit(limit);
+
       return res.status(200).json({
         success: true,
         message: 'Aucun historique: recommandations basees sur les films populaires',
@@ -215,13 +219,26 @@ export const getRecommendations = async (req, res, next) => {
 
     const preferredGenres = Object.entries(genreCount).sort((a, b) => b[1] - a[1]).map(([genre]) => genre);
     const rentedMovieIds = rentalHistory.map((rental) => rental.movie?._id).filter(Boolean);
-    const recommendations = await Movie.find({
+
+    let recommendations = await Movie.find({
       genre: { $in: preferredGenres },
       _id: { $nin: rentedMovieIds },
       isAvailable: true,
     })
       .sort({ rating: -1, rentalCount: -1 })
-      .limit(6);
+      .limit(limit);
+
+    if (recommendations.length < limit) {
+      const recommendedIds = recommendations.map((movie) => movie._id);
+      const fallbackMovies = await Movie.find({
+        _id: { $nin: [...rentedMovieIds, ...recommendedIds] },
+        isAvailable: true,
+      })
+        .sort({ rentalCount: -1, rating: -1 })
+        .limit(limit - recommendations.length);
+
+      recommendations = [...recommendations, ...fallbackMovies];
+    }
 
     res.status(200).json({ success: true, preferredGenres, count: recommendations.length, data: recommendations });
   } catch (error) {

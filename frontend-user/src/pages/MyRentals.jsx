@@ -5,6 +5,7 @@ import Footer from '../components/layout/Footer'
 import Button from '../components/common/Button'
 import { useCart } from '../context/useCart'
 import { useNotification } from '../context/useNotification'
+import { getPosterSources, handleImageFallback } from '../utils/movieImages'
 
 const tabs = [
   { key: 'all', label: 'Toutes' },
@@ -76,7 +77,12 @@ const MyRentals = () => {
           <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {displayedRentals.map((rental) => (
               <article key={rental._id} className="rounded-lg border border-gray-800 bg-slate-900/70 p-3">
-                <img src={rental.poster} alt={rental.title} className="h-72 w-full rounded-lg object-cover" />
+                <img
+                  src={getPosterSources(rental)[0]}
+                  alt={rental.title}
+                  className="h-72 w-full rounded-lg object-cover"
+                  onError={(event) => handleImageFallback(event, getPosterSources(rental))}
+                />
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="line-clamp-1 font-semibold">{rental.title}</h3>

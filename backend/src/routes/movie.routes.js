@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getAllMovies,
+  getRandomMovies,
   getMovieById,
   createMovie,
   updateMovie,
@@ -13,10 +14,11 @@ import { protect, admin } from '../middleware/auth.middleware.js';
 const router = express.Router();
 
 // Routes publiques
+router.get('/random', getRandomMovies);
 router.get('/', getAllMovies);
 router.get('/stats', protect, admin, getMovieStats);
-router.get('/:id', getMovieById);
 router.get('/:id/similar', getSimilarMovies);
+router.get('/:id', getMovieById);
 
 // Routes protegees admin
 router.post('/', protect, admin, createMovie);
