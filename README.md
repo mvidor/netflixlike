@@ -54,6 +54,71 @@ GET /user/ma-liste
 GET /search=action
 POST /ma-liste/add
 
+## Difficultes rencontrees
+
+Plusieurs petites difficultes ont ete rencontrees pendant le projet, surtout au niveau de l'integration entre les differentes parties de l'application.
+
+### 1. Configuration locale
+
+Il a fallu bien aligner :
+
+- le port du frontend
+- le port du backend
+- la variable `VITE_API_URL`
+- la configuration CORS
+
+Ce sont des details simples, mais une petite erreur a ce niveau empeche rapidement le frontend de communiquer avec l'API.
+
+### 2. Installation et environnement
+
+Le lancement du projet a demande quelques ajustements :
+
+- installation des dependances manquantes
+- verification des scripts npm
+- controle des fichiers `.env`
+
+Ce n'etait pas un gros blocage, mais cela a pris un peu de temps pour stabiliser l'environnement.
+
+### 3. Connexion avec MongoDB Atlas
+
+La partie base de donnees a demande plusieurs verifications :
+
+- acces au cluster
+- droits du compte MongoDB
+- bonne lecture des collections depuis le backend
+
+Quand la configuration Atlas n'est pas correcte, plusieurs fonctionnalites peuvent sembler cassees alors que le frontend fonctionne correctement.
+
+### 4. Gestion des locations
+
+La logique de location a demande un peu d'attention, car il fallait verifier plusieurs choses a la suite :
+
+- la creation de la location
+- la mise a jour des informations du film
+- la relecture correcte des locations utilisateur
+
+Ce parcours depend de plusieurs traitements backend, donc il fallait corriger progressivement les points qui bloquaient.
+
+### 5. Accueil dynamique
+
+Le hero de la page d'accueil devait etre alimente par l'API et adapter son contenu selon l'etat de connexion de l'utilisateur.
+
+Il fallait donc gerer :
+
+- les recommandations si l'utilisateur est connecte
+- les films aleatoires sinon
+- un fallback propre en cas d'erreur API
+
+### 6. Petits problemes d'affichage
+
+Comme dans beaucoup de projets frontend, quelques petits problemes ont du etre ajustes :
+
+- affichage de certaines images
+- rendu de composants
+- encodage de certains fichiers
+- details de style sur quelques ecrans
+
+Ce ne sont pas de gros blocages, mais ce sont des corrections normales dans un projet de ce type.
 
 
 
